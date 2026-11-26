@@ -10,6 +10,7 @@ import {
   SparklesIcon,
   TriangleIcon,
   TrophyIcon,
+  WalletCardsIcon,
   WrenchIcon,
 } from 'lucide-react'
 
@@ -46,6 +47,7 @@ export const TOOL_TABS = [
   { tab: 'submission-planner', label: 'Submission Planner', to: '/tools/submission-planner' },
   { tab: 'correlation-breaker', label: 'Correlation Breaker', to: '/tools/correlation-breaker' },
   { tab: 'decay-sweep', label: 'Decay Sweep', to: '/tools/decay-sweep' },
+  { tab: 'truncation-sweep', label: 'Truncation Sweep', to: '/tools/truncation-sweep' },
   { tab: 'focused-simulation', label: 'Focused Simulation', to: '/tools/focused-simulation' },
 ] as const
 
@@ -114,6 +116,12 @@ export const NAV = [
     group: 'BRAIN',
     label: 'Pyramids',
     icon: TriangleIcon,
+  },
+  {
+    to: '/payments',
+    group: 'BRAIN',
+    label: 'Payments',
+    icon: WalletCardsIcon,
   },
   {
     to: '/sync',

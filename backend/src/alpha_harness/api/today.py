@@ -10,16 +10,19 @@ by the platform's own number once the first batch comes back. ``exact`` says whi
 are looking at.
 """
 
+import asyncio
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Query
 
-from ..brain.filters import PLATFORM_TZ
+from ..brain.filters import PLATFORM_TZ, AlphaQuery, Filter, platform_midnight
 from ..catalog.queries import scope_label
 from ..db.models import SyncStatus
 from ..llm.budget import seconds_until_reset
+from ..realtime import TOPIC_SESSION
 from ..schemas import EngineStatus, Out, SyncRunRow
+from ..tasks import spawn
 from .deps import State
 from .llm import LLMBudget
 
@@ -28,6 +31,8 @@ router = APIRouter(prefix="/api/today", tags=["today"])
 #: A consultant's daily simulation allowance, shown until the day's first simulation POST
 #: returns its x-ratelimit-* headers.
 DAILY_ALLOWANCE = 5000
+REGULAR_SUBMISSION_LIMIT = 4
+SUPER_ALPHA_SUBMISSION_LIMIT = 1
 
 
 class Feature(Out):
@@ -59,6 +64,25 @@ class TodaySimulations(Out):
     resets_at: str
     engine: EngineStatus
     headline: str
+
+
+class TodaySubmittedAlpha(Out):
+    alpha_id: str
+    name: str | None
+    type: str | None
+    status: str | None
+    date_submitted: str | None
+
+
+class TodaySubmissions(Out):
+    regular: int
+    regular_limit: int
+    super_alpha: int
+    super_alpha_limit: int
+    resets_in_seconds: int
+    total: int
+    alphas: list[TodaySubmittedAlpha]
+    truncated: bool
 
 
 class Assistant(Out):
@@ -171,10 +195,13 @@ async def today(
     else:
         step = "ready"
 
+    if session.authenticated and not session.full_name:
+        spawn(_warm_profile(state), name="today-user-profile")
+
     return Today.model_validate(
         {
             "step": step,
-            "you": await _you(state, session, stored_email),
+            "you": _you(session, stored_email),
             "simulations": await simulations_today(state),
             "assistant": await _assistant(state, keys, enabled_keys),
             "catalog": await _catalog(state, instrument_type, region, delay, universe),
@@ -199,6 +226,58 @@ async def bar(state: State) -> Bar:
             "simulations": {k: sims[k] for k in ("remaining", "limit", "exact", "queued")},
             "resetsInSeconds": sims["resetsInSeconds"],
         }
+    )
+
+
+@router.get("/submissions")
+async def submissions_today(state: State) -> TodaySubmissions:
+    """Regular and Super Alpha submissions since midnight on BRAIN's clock."""
+    start = platform_midnight()
+
+    async def list_type(sim_type: str) -> int:
+        result = await state.endpoints.list_alphas(
+            AlphaQuery(
+                limit=1,
+                filters=[
+                    Filter("dateSubmitted", ">=", start),
+                    Filter("type", "=", sim_type),
+                ],
+            )
+        )
+        return result["count"]
+
+    query = AlphaQuery(
+        limit=100,
+        order="-dateSubmitted",
+        hidden=None,
+        filters=[Filter("dateSubmitted", ">=", start)],
+    )
+    regular, super_alpha, submitted = await asyncio.gather(
+        list_type("REGULAR"),
+        list_type("SUPER"),
+        state.endpoints.list_alphas(query),
+    )
+    rows = submitted["results"]
+    alphas = [
+        TodaySubmittedAlpha(
+            alpha_id=str(row["id"]),
+            name=row.get("name"),
+            type=row.get("type"),
+            status=row.get("status"),
+            date_submitted=row.get("dateSubmitted"),
+        )
+        for row in rows
+        if isinstance(row, dict) and row.get("id")
+    ]
+    return TodaySubmissions(
+        regular=regular,
+        regular_limit=REGULAR_SUBMISSION_LIMIT,
+        super_alpha=super_alpha,
+        super_alpha_limit=SUPER_ALPHA_SUBMISSION_LIMIT,
+        resets_in_seconds=round(seconds_until_reset(tz=PLATFORM_TZ)),
+        total=submitted["count"],
+        alphas=alphas,
+        truncated=submitted["count"] > len(rows),
     )
 
 
@@ -244,14 +323,11 @@ async def _catalog(
     }
 
 
-async def _you(state: State, session: Any, stored_email: str | None) -> dict[str, Any]:
+def _you(session: Any, stored_email: str | None) -> dict[str, Any]:
     granted = list(session.permissions or [])
-    # Falling back to the local part of the email keeps the greeting working when the
-    # profile is unavailable, rather than showing an account id to someone new.
+    # The profile is fetched in the background so a slow BRAIN response cannot hold up the
+    # first screen. The email fallback is replaced after the session topic is broadcast.
     full_name = session.full_name
-    if not full_name and session.authenticated:
-        await state.auth.get_user_profile()
-        full_name = session.full_name
     if not full_name and stored_email:
         full_name = stored_email.split("@")[0].replace(".", " ").title()
 
@@ -273,6 +349,14 @@ async def _you(state: State, session: Any, stored_email: str | None) -> dict[str
         "canRunTenAtOnce": "MULTI_SIMULATION" in granted,
         "verificationUrl": session.verification_url,
     }
+
+
+async def _warm_profile(state: State) -> None:
+    user_id = state.auth.session.user_id
+    profile = await state.auth.get_user_profile()
+    session = state.auth.session
+    if profile and session.authenticated and session.user_id == user_id and session.full_name:
+        await state.hub.broadcast(TOPIC_SESSION, session.to_dict())
 
 
 async def simulations_today(state: State) -> dict[str, Any]:

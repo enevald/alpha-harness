@@ -135,6 +135,17 @@ const decaySweep = createRoute({
   }),
   component: lazyRouteComponent(() => import('@/screens/tools/decay-sweep'), 'DecaySweepScreen'),
 })
+const truncationSweep = createRoute({
+  getParentRoute: () => tools,
+  path: 'truncation-sweep',
+  validateSearch: (search: Record<string, unknown>) => ({
+    alpha: typeof search['alpha'] === 'string' ? search['alpha'] : undefined,
+  }),
+  component: lazyRouteComponent(
+    () => import('@/screens/tools/truncation-sweep'),
+    'TruncationSweepScreen',
+  ),
+})
 const focusedSimulationToolPicker = createRoute({
   getParentRoute: () => tools,
   path: 'focused-simulation',
@@ -255,6 +266,12 @@ const pyramids = createRoute({
   component: lazyRouteComponent(() => import('@/screens/pyramids'), 'PyramidsScreen'),
 })
 
+const payments = createRoute({
+  getParentRoute: () => root,
+  path: '/payments',
+  component: lazyRouteComponent(() => import('@/screens/payments'), 'PaymentsScreen'),
+})
+
 const routeTree = root.addChildren([
   index,
   dashboard,
@@ -267,6 +284,7 @@ const routeTree = root.addChildren([
     submissionPlanner,
     correlationBreaker,
     decaySweep,
+    truncationSweep,
     focusedSimulationToolPicker,
     focusedSimulationTool,
   ]),
@@ -278,6 +296,7 @@ const routeTree = root.addChildren([
   alphaSimulation,
   ai.addChildren([aiIndex, aiTab, aiThread]),
   pyramids,
+  payments,
   sync,
 ])
 

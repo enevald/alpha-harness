@@ -168,6 +168,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/alphas/{alpha_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview
+         * @description One Alpha's properties and checks, without fetching its performance series.
+         */
+        get: operations["preview_api_alphas__alpha_id__preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/alphas/{alpha_id}/simulate": {
         parameters: {
             query?: never;
@@ -1000,6 +1020,26 @@ export interface paths {
         patch: operations["change_api_lab_tasks__task_id__patch"];
         trace?: never;
     };
+    "/api/lab-tasks/{task_id}/dataset-trials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dataset Trials
+         * @description Trial IDs in this task whose expressions use a field in the selected dataset.
+         */
+        get: operations["dataset_trials_api_lab_tasks__task_id__dataset_trials_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lab-tasks/{task_id}/name": {
         parameters: {
             query?: never;
@@ -1271,6 +1311,26 @@ export interface paths {
          * @description What a provider's Key can reach, asked live. Costs no generation request.
          */
         get: operations["offered_models_api_llm_providers__provider__models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payment Overview
+         * @description Fetch payment feeds from BRAIN without storing account payment data locally.
+         */
+        get: operations["payment_overview_api_payments_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1912,6 +1972,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/today/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Submissions Today
+         * @description Regular and Super Alpha submissions since midnight on BRAIN's clock.
+         */
+        get: operations["submissions_today_api_today_submissions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tools/correlation-breaker/preview": {
         parameters: {
             query?: never;
@@ -2073,6 +2153,46 @@ export interface paths {
          * @description Record that an Alpha was submitted on BRAIN, so later plans treat it as permanent.
          */
         post: operations["mark_submitted_api_tools_submission_planner_submitted_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tools/truncation-sweep/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Truncation Sweep Preview
+         * @description Read the Alpha and its settings without spending simulation quota.
+         */
+        post: operations["truncation_sweep_preview_api_tools_truncation_sweep_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tools/truncation-sweep/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Truncation Sweep Task
+         * @description Queue one simulation per truncation, holding the Alpha's other settings fixed.
+         */
+        post: operations["truncation_sweep_task_api_tools_truncation_sweep_tasks_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2746,6 +2866,26 @@ export interface components {
             queued: number;
             /** Remaining */
             remaining: number;
+        };
+        /** BasePaymentRecord */
+        BasePaymentRecord: {
+            /** Date */
+            date: string;
+            /** Regularalpha */
+            regularAlpha: number | null;
+            /** Superalpha */
+            superAlpha: number | null;
+        };
+        /** BasePayments */
+        BasePayments: {
+            /** Currency */
+            currency: string;
+            /** Periods */
+            periods: {
+                [key: string]: components["schemas"]["PaymentPeriod"];
+            };
+            /** Records */
+            records: components["schemas"]["BasePaymentRecord"][];
         };
         /**
          * BrainPayload
@@ -3801,6 +3941,8 @@ export interface components {
              * @default false
              */
             truncationAgent: boolean;
+            /** Truncations */
+            truncations?: number[];
             /** Universe */
             universe: string | null;
             /** Universes */
@@ -3953,6 +4095,23 @@ export interface components {
             /** Vector */
             vector: string[];
         };
+        /** OtherPaymentRecord */
+        OtherPaymentRecord: {
+            /** Date */
+            date: string;
+            /** Description */
+            description: string;
+            /** Value */
+            value: number;
+        };
+        /** OtherPayments */
+        OtherPayments: {
+            /** Currency */
+            currency: string;
+            /** Records */
+            records: components["schemas"]["OtherPaymentRecord"][];
+            total: components["schemas"]["PaymentPeriod"];
+        };
         /**
          * OutlineRequest
          * @description Fields picked one by one, or whole datasets: a category or subcategory is its datasets.
@@ -3995,6 +4154,24 @@ export interface components {
              * Format: date-time
              */
             start: string;
+        };
+        /** PaymentOverview */
+        PaymentOverview: {
+            base: components["schemas"]["BasePayments"];
+            other: components["schemas"]["OtherPayments"];
+        };
+        /** PaymentPeriod */
+        PaymentPeriod: {
+            /** End */
+            end?: string | null;
+            /** Regularalpha */
+            regularAlpha?: number | null;
+            /** Start */
+            start?: string | null;
+            /** Superalpha */
+            superAlpha?: number | null;
+            /** Value */
+            value?: number | null;
         };
         /** Period */
         Period: {
@@ -4507,6 +4684,8 @@ export interface components {
             alphaId: string | null;
             /** Color */
             color?: string | null;
+            /** Datasetids */
+            datasetIds?: string[];
             /** Drawdown */
             drawdown: number | null;
             /**
@@ -4533,6 +4712,11 @@ export interface components {
              * @default false
              */
             pending: boolean;
+            /**
+             * Powerpool
+             * @default false
+             */
+            powerPool: boolean;
             /** Prodcorrelation */
             prodCorrelation?: number | null;
             /**
@@ -5364,6 +5548,8 @@ export interface components {
             alphaId: string | null;
             /** Color */
             color?: string | null;
+            /** Datasetids */
+            datasetIds?: string[];
             /** Drawdown */
             drawdown: number | null;
             /**
@@ -5390,6 +5576,11 @@ export interface components {
              * @default false
              */
             pending: boolean;
+            /**
+             * Powerpool
+             * @default false
+             */
+            powerPool: boolean;
             /** Prodcorrelation */
             prodCorrelation?: number | null;
             /**
@@ -5684,6 +5875,38 @@ export interface components {
             /** Used */
             used: number;
         };
+        /** TodaySubmissions */
+        TodaySubmissions: {
+            /** Alphas */
+            alphas: components["schemas"]["TodaySubmittedAlpha"][];
+            /** Regular */
+            regular: number;
+            /** Regularlimit */
+            regularLimit: number;
+            /** Resetsinseconds */
+            resetsInSeconds: number;
+            /** Superalpha */
+            superAlpha: number;
+            /** Superalphalimit */
+            superAlphaLimit: number;
+            /** Total */
+            total: number;
+            /** Truncated */
+            truncated: boolean;
+        };
+        /** TodaySubmittedAlpha */
+        TodaySubmittedAlpha: {
+            /** Alphaid */
+            alphaId: string;
+            /** Datesubmitted */
+            dateSubmitted: string | null;
+            /** Name */
+            name: string | null;
+            /** Status */
+            status: string | null;
+            /** Type */
+            type: string | null;
+        };
         /**
          * TreeNode
          * @description One step of a template, as the Blocks view draws it. ``...`` is a name: an empty input.
@@ -5711,6 +5934,50 @@ export interface components {
         TreeRequest: {
             /** Text */
             text: string;
+        };
+        /** TruncationSweepPlan */
+        TruncationSweepPlan: {
+            /** Alphaid */
+            alphaId: string;
+            /** Expression */
+            expression: string;
+            /** Maxcores */
+            maxCores: number;
+            /** Maxtruncation */
+            maxTruncation: number;
+            /** Mintruncation */
+            minTruncation: number;
+            settings: components["schemas"]["DecaySweepSettings"];
+        };
+        /** TruncationSweepPreviewRequest */
+        TruncationSweepPreviewRequest: {
+            /** Alphaid */
+            alphaId: string;
+        };
+        /** TruncationSweepRequest */
+        TruncationSweepRequest: {
+            /** Alphaid */
+            alphaId: string;
+            /**
+             * Cores
+             * @default 8
+             */
+            cores: number;
+            /**
+             * Step
+             * @default 0.01
+             */
+            step: number;
+            /**
+             * Truncationfrom
+             * @default 0.01
+             */
+            truncationFrom: number;
+            /**
+             * Truncationto
+             * @default 0.08
+             */
+            truncationTo: number;
         };
         /**
          * Tuple4
@@ -6145,6 +6412,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BrainPayload"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_alphas__alpha_id__preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alpha_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlphaInfo"];
                 };
             };
             /** @description Validation Error */
@@ -7368,6 +7666,39 @@ export interface operations {
             };
         };
     };
+    dataset_trials_api_lab_tasks__task_id__dataset_trials_get: {
+        parameters: {
+            query: {
+                dataset_id: string;
+            };
+            header?: never;
+            path: {
+                task_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     rename_api_lab_tasks__task_id__name_put: {
         parameters: {
             query?: never;
@@ -7847,6 +8178,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    payment_overview_api_payments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOverview"];
                 };
             };
         };
@@ -8798,6 +9149,26 @@ export interface operations {
             };
         };
     };
+    submissions_today_api_today_submissions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodaySubmissions"];
+                };
+            };
+        };
+    };
     breaker_preview_api_tools_correlation_breaker_preview_post: {
         parameters: {
             query?: never;
@@ -9048,6 +9419,72 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    truncation_sweep_preview_api_tools_truncation_sweep_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TruncationSweepPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TruncationSweepPlan"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    truncation_sweep_task_api_tools_truncation_sweep_tasks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TruncationSweepRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddedTask"];
+                };
             };
             /** @description Validation Error */
             422: {

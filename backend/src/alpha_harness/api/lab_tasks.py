@@ -38,6 +38,7 @@ from ..labs.params import (
     SETTINGS_SAMPLER,
     TASK_SAMPLERS,
     TEMPLATE_SAMPLER,
+    TRUNCATION_SWEEP,
     task_params,
 )
 from ..labs.study import ranked
@@ -54,7 +55,7 @@ router = APIRouter(prefix="/api/lab-tasks", tags=["lab-tasks"])
 
 #: Labs that vary settings around one fixed expression, so ``template_source`` is that
 #: expression rather than a skeleton to search.
-ONE_EXPRESSION = frozenset({SETTINGS_SAMPLER, CORRELATION_BREAKER, DECAY_SWEEP})
+ONE_EXPRESSION = frozenset({SETTINGS_SAMPLER, CORRELATION_BREAKER, DECAY_SWEEP, TRUNCATION_SWEEP})
 
 #: Where a task can be run from: never started, paused, or failed. A failed task may have
 #: sent simulations that finished after it stopped; running it again scores them.
@@ -106,6 +107,7 @@ class LabTask(Out):
     alpha_id: str | None = None
     markets: int | None = None
     decays: list[int] = Field(default_factory=list)
+    truncations: list[float] = Field(default_factory=list)
     truncation: float | None = None
     #: Settings Sampler: truncation set per market by the Truncation Agent.
     truncation_agent: bool = False
@@ -191,6 +193,8 @@ class RankedAlpha(Out):
     #: The highest correlation with any consultant Alpha in production, which BRAIN wants
     #: below 0.7. Null until BRAIN has been asked: it limits these checks per hour.
     prod_correlation: float | None = None
+    #: Whether BRAIN attached its Power Pool correlation check to this Alpha.
+    power_pool: bool = False
     feasible: bool | None
     failed_checks: list[str]
     #: Of ``failed_checks``, those that gate submission. A check BRAIN fails for a reason
@@ -426,6 +430,7 @@ def _task(row: Study, progress: dict[str, Any]) -> LabTask:
             "alphaId": params.get("alphaId"),
             "markets": params.get("markets"),
             "decays": params.get("decays") or [],
+            "truncations": params.get("truncations") or [],
             "truncation": params.get("truncation"),
             "truncationAgent": bool(params.get("truncationAgent")),
             "nanHandling": params.get("nanHandling"),
@@ -824,6 +829,7 @@ async def top(
                 "testSharpe": (stored.get(r["alphaId"]) or {}).get("test_sharpe"),
                 "testFitness": (stored.get(r["alphaId"]) or {}).get("test_fitness"),
                 "prodCorrelation": prod.get(r["alphaId"]),
+                "powerPool": power_pool.is_power_pool(stored.get(r["alphaId"])),
                 "submitted": is_submitted(stored.get(r["alphaId"])),
             }
         )

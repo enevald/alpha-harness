@@ -30,6 +30,7 @@ import {
   SETTING_COLUMNS,
   setting,
   TRUNCATION,
+  TRUNCATION_SWEEP as TRUNCATION_SWEEP_COLUMN,
   taskStatus,
   WARNING_COUNT,
 } from '@/screens/tasks/columns'
@@ -41,10 +42,20 @@ const LIMIT = 2000
 
 const market = (r: RankedAlpha) => setting(r, 'region') || DASH
 
-const columns = (agent: boolean): Column<RankedAlpha>[] => [
+const DECAY_COLUMN: Column<RankedAlpha> = {
+  key: 'decay',
+  header: 'Decay',
+  width: 'minmax(64px,0.6fr)',
+  sortable: true,
+  cell: (r) => <span className="num">{setting(r, 'decay') || DASH}</span>,
+}
+
+const columns = (agent: boolean, sweep: boolean, decaySweep: boolean): Column<RankedAlpha>[] => [
   ALPHA_ID,
-  ...SETTING_COLUMNS,
-  ...(agent ? [TRUNCATION] : []),
+  ...SETTING_COLUMNS.map((column) =>
+    decaySweep && column.key === 'delay' ? DECAY_COLUMN : column,
+  ),
+  ...(sweep ? [TRUNCATION_SWEEP_COLUMN] : agent ? [TRUNCATION] : []),
   PROD_CORRELATION,
   WARNING_COUNT,
   FAILED_CHECKS,
@@ -394,9 +405,15 @@ export function TaskResultsScreen() {
       <AlphaPane
         title="Every Alpha"
         rows={rows}
-        columns={() => columns(Boolean(task?.truncationAgent))}
+        columns={() =>
+          columns(
+            Boolean(task?.truncationAgent),
+            task?.lab === 'truncation-sweep',
+            task?.lab === 'decay-sweep',
+          )
+        }
         compare={compareAlphas}
-        poolColumnAfter="investability"
+        poolColumnAfter={task?.lab === 'truncation-sweep' ? 'truncation' : 'investability'}
         sort={sort}
         onSort={setSort}
         loading={top.isPending}
@@ -408,6 +425,8 @@ export function TaskResultsScreen() {
         datasetNames={datasetNames}
         datasetIds={task?.datasetIds ?? []}
         datasetTaskId={id}
+        showConfidenceScore
+        scoreCohortMayBePartial={rows.length >= LIMIT}
       />
 
       <CheckSets rows={rows} />
